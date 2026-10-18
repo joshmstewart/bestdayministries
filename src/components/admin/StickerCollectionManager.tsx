@@ -46,6 +46,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { getPackCovers } from "@/lib/packCovers";
 
 type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
 
@@ -2748,6 +2749,22 @@ export const StickerCollectionManager = () => {
               </TabsContent>
 
               <TabsContent value="pack" className="space-y-4 mt-4">
+                <div className="space-y-3">
+                  <Label>Pack Covers</Label>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {getPackCovers(editingCollection).map((cover, index) => (
+                      <img key={cover} src={cover} alt={`Pack cover ${index + 1}`} className="h-28 w-auto aspect-[2/3] object-cover rounded-lg border border-border shrink-0" />
+                    ))}
+                  </div>
+                  <Label htmlFor="pack-cover-mode">Cover Mode</Label>
+                  <Select value={editingCollection.pack_cover_mode || 'rotate'} disabled>
+                    <SelectTrigger id="pack-cover-mode"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rotate">Rotate</SelectItem>
+                      <SelectItem value="choose">Choose</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Upload custom images/animations for pack opening. Leave blank to keep current assets or use default sticker collage.
                 </p>

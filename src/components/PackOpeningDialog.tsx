@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { showCoinNotification } from "@/utils/coinNotification";
+import { useAuth } from "@/contexts/AuthContext";
+import { getPackCovers, pickRotatingPackCover } from "@/lib/packCovers";
 
 interface PackOpeningDialogProps {
   open: boolean;
@@ -46,6 +48,7 @@ const rarityConfettiConfig = {
 
 export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, onOpened, onChangeCollection }: PackOpeningDialogProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { playSound, loading: soundsLoading, soundEffects } = useSoundEffects();
   const [opened, setOpened] = useState(false);
@@ -60,6 +63,10 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
   const [tearProgress, setTearProgress] = useState(0);
   const [customPackImage, setCustomPackImage] = useState<string | null>(null);
   const [customPackAnimation, setCustomPackAnimation] = useState<string | null>(null);
+  const [coverChoices, setCoverChoices] = useState<string[]>([]);
+  const [choosingCover, setChoosingCover] = useState(false);
+  const coverSelection = useRef<{ key: string; cover: string | null } | null>(null);
+  const collectionLoadVersion = useRef(0);
 
   const handleDialogClose = (isOpen: boolean) => {
     // If closing the dialog and a pack was opened, trigger the callback
@@ -87,6 +94,8 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       setCustomPackImage(null);
       setCustomPackAnimation(null);
       setPackStickers([]);
+      setCoverChoices([]);
+      setChoosingCover(false);
       
       // Play sound IMMEDIATELY when dialog opens (don't wait for loading)
       if (!hasPlayedRevealSound.current && !soundsLoading) {
@@ -100,12 +109,15 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     // Reset when dialog closes
     if (!open) {
       hasPlayedRevealSound.current = false;
+      coverSelection.current = null;
+      collectionLoadVersion.current += 1;
     }
-  }, [open, soundsLoading, collectionId]);
+  }, [open, soundsLoading, collectionId, cardId, user?.id]);
 
 
   const loadCollectionInfo = async () => {
     if (!cardId && !collectionId) return;
+    const loadVersion = ++collectionLoadVersion.current;
     
     setLoading(true);
     try {
@@ -129,25 +141,37 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       // Get collection details including custom pack assets
       const { data: collection, error: collectionError } = await supabase
         .from('sticker_collections')
-        .select('name, pack_image_url, pack_animation_url')
+        .select('name, pack_image_url, pack_image_urls, pack_cover_mode, pack_animation_url')
         .eq('id', targetCollectionId)
         .single();
 
       if (collectionError) throw collectionError;
+      if (loadVersion !== collectionLoadVersion.current) return;
 
       setCollectionName(collection.name || "Sticker Pack");
-      setCustomPackImage(collection.pack_image_url);
+      const covers = getPackCovers(collection);
+      const choose = collection.pack_cover_mode === 'choose' && (collection.pack_image_urls?.length ?? 0) > 0;
+      setCoverChoices(covers);
+      setChoosingCover(choose);
+      const selectionKey = JSON.stringify([user?.id ?? 'anonymous', targetCollectionId, cardId, covers]);
+      if (coverSelection.current?.key !== selectionKey) {
+        coverSelection.current = {
+          key: selectionKey,
+          cover: choose ? null : pickRotatingPackCover(covers, user?.id ?? 'anonymous', targetCollectionId),
+        };
+      }
+      setCustomPackImage(coverSelection.current.cover);
       setCustomPackAnimation(collection.pack_animation_url);
 
       // Only load stickers if no custom pack image
-      if (!collection.pack_image_url) {
+      if (covers.length === 0) {
         const { data: stickers } = await supabase
           .from('stickers')
           .select('id, name, image_url, rarity')
           .eq('collection_id', targetCollectionId)
           .limit(4);
 
-        if (stickers && stickers.length > 0) {
+        if (loadVersion === collectionLoadVersion.current && stickers && stickers.length > 0) {
           // Shuffle and take up to 4 stickers
           const shuffled = stickers.sort(() => Math.random() - 0.5);
           setPackStickers(shuffled.slice(0, 4));
@@ -156,12 +180,12 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     } catch (error) {
       console.error('Error loading collection info:', error);
     } finally {
-      setLoading(false);
+      if (loadVersion === collectionLoadVersion.current) setLoading(false);
     }
   };
 
   const handleOpen = () => {
-    if (opening || opened) return;
+    if (opening || opened || choosingCover) return;
     
     setOpening(true);
     
@@ -313,13 +337,31 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
             {opened ? "You Got:" : "Open Your Pack"}
           </DialogTitle>
           <DialogDescription className="text-center">
-            {opened ? "Added to your collection!" : "Tap to open your pack!"}
+            {opened ? "Added to your collection!" : choosingCover ? "Pick a pack!" : "Tap to open your pack!"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-6 py-4">
           {!opened ? (
-            customPackImage ? (
+            choosingCover ? (
+              <div className="grid grid-cols-3 gap-3 w-full">
+                {coverChoices.map((cover, index) => (
+                  <Button
+                    key={cover}
+                    variant="ghost"
+                    aria-label={`Pick pack ${index + 1}`}
+                    className="h-auto w-full aspect-[2/3] p-0 overflow-hidden rounded-lg"
+                    onClick={() => {
+                      if (coverSelection.current) coverSelection.current.cover = cover;
+                      setCustomPackImage(cover);
+                      setChoosingCover(false);
+                    }}
+                  >
+                    <img src={cover} alt={`Pack cover ${index + 1}`} className="w-full h-full object-cover" />
+                  </Button>
+                ))}
+              </div>
+            ) : customPackImage ? (
               // Custom pack image - display as complete standalone pack
               <div 
                 onClick={handleOpen}

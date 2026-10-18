@@ -29,6 +29,8 @@ Main collection configuration:
 - `visible_to_roles` - Array of user_role types who can access
 - `preview_sticker_id` - Featured sticker for pack preview
 - `pack_image_url` - Custom pack cover image (nullable)
+- `pack_image_urls` - Multiple visual covers, text[] default empty; empty uses `pack_image_url` unchanged
+- `pack_cover_mode` - `rotate` (default) or `choose`; visual only, never sent into `scratch-card`
 - `pack_animation_url` - Custom pack animation URL (nullable)
 - `rarity_percentages` - JSONB with drop rates: `{"common": 50, "uncommon": 30, "rare": 15, "epic": 4, "legendary": 1}`
 - `completion_badge_id` - Badge awarded on completion (nullable)
@@ -119,6 +121,9 @@ Checks if user completed a collection and awards badge:
 **Action:** Calls `check_collection_completion()` to check if collection is now complete
 
 ## Edge Functions
+
+### `sticker-admin-api` pack covers
+Shared `x-sticker-admin-key` authentication; never expose the key to the browser. `set_pack_images` accepts `{action:"set_pack_images",collection_id:"UUID",image_urls:["public sticker-images URL"]}` (1–6 URLs, this project's bucket only), updates both `pack_image_urls` and legacy `pack_image_url` (first URL), logs the write, and returns `{ok:true,data:<full collection row>}`. `create_collection` and `update_collection` accept optional `pack_cover_mode:"rotate"|"choose"`, keep existing response envelopes, and audit writes. Invalid mode/URL/count returns 400 `{ok:false,error:string}`; missing collection returns 404. Legacy `set_pack_image` remains single-field-only and does not override a nonempty array. Cover management is independent of rarity percentages and sticker drops.
 
 ### `scratch-card`
 Opens a pack and reveals a sticker.
@@ -233,6 +238,7 @@ Main pack opening experience with tear animation.
 
 **Features:**
 - **Loading State:** Shows loading spinner while fetching data
+- **Multiple covers:** Rotate randomly, excluding the previous cover per user/collection within the browser session (shared across dialog instances). Choose shows "Pick a pack!" and a three-column grid; selecting a cover enters the existing tear flow. Empty arrays preserve legacy behavior. Sticker odds, selection, sounds and confetti are unchanged. Read-only cover thumbnails and mode dropdown appear in the collection editor's Pack tab.
 - **Pack Animation:** 
   - Custom image if `pack_image_url` exists
   - Generated holographic gradient pack if not

@@ -9760,7 +9760,9 @@ export type Database = {
           is_featured: boolean
           name: string
           pack_animation_url: string | null
+          pack_cover_mode: string
           pack_image_url: string | null
+          pack_image_urls: string[]
           preview_sticker_id: string | null
           rarity_percentages: Json | null
           start_date: string
@@ -9783,7 +9785,9 @@ export type Database = {
           is_featured?: boolean
           name: string
           pack_animation_url?: string | null
+          pack_cover_mode?: string
           pack_image_url?: string | null
+          pack_image_urls?: string[]
           preview_sticker_id?: string | null
           rarity_percentages?: Json | null
           start_date?: string
@@ -9806,7 +9810,9 @@ export type Database = {
           is_featured?: boolean
           name?: string
           pack_animation_url?: string | null
+          pack_cover_mode?: string
           pack_image_url?: string | null
+          pack_image_urls?: string[]
           preview_sticker_id?: string | null
           rarity_percentages?: Json | null
           start_date?: string
