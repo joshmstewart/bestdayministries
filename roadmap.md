@@ -1,5 +1,5 @@
 # Multiple sticker pack covers
-- [ ] Make Calvin’s artwork noticeably larger again: remove poster width cap and surrounding item/category spacing; verify actual rendered size.
+- [x] Make Calvin’s artwork edge-to-edge: removed poster cap and item/category insets; browser measured 1022px desktop / 356px phone, both pork/chicken descriptions present and build OK.
 - [x] Enlarge Calvin’s green chili artwork to full menu width (672px maximum) and add pork or chicken choices; public desktop/phone screenshots verify both entries and unchanged $12/$23 prices.
 - [x] Enlarge Calvin’s Famous Green Chili artwork: both posters 256px high, Chai unchanged at 32px; desktop/phone menu screenshots verified, prices unchanged.
 - [ ] Security fix 4 after fix 3: inspect Printify/Sentry/GitHub receivers and legitimate callers; harmless unsigned probes; verify signatures before work; provider-dependent Printify/Sentry enforcement stays log-only until configured; GitHub shared-secret workflow headers; re-test. No existing order/user-data changes.
