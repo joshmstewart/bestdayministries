@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/corsHeaders.ts";
 import { validatePackCoverMode, validatePackImageUrls } from "./packCoverValidation.ts";
+import { withoutRoutingFields, databaseErrorMessage } from "./requestFields.ts";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
 
@@ -250,7 +251,7 @@ serve(async (req) => {
       }
 
       case "create_sticker": {
-        const { out, unknown } = pickFields(body, [...STICKER_FIELDS, "action"]);
+        const { out, unknown } = pickFields(withoutRoutingFields(body), STICKER_FIELDS);
         if (unknown.length) {
           return json({ ok: false, error: `Unknown fields: ${unknown.join(", ")}` }, 400);
         }
@@ -273,7 +274,8 @@ serve(async (req) => {
       }
 
       case "update_sticker": {
-        const { sticker_id, ...rest } = body;
+        const { sticker_id } = body;
+        const rest = withoutRoutingFields(body);
         if (!sticker_id) return json({ ok: false, error: "sticker_id required" }, 400);
         const { out, unknown } = pickFields(rest, STICKER_FIELDS);
         if (unknown.length) {
@@ -356,7 +358,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("sticker-admin-api error:", error);
     return json(
-      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { ok: false, error: databaseErrorMessage(error) },
       500,
     );
   }

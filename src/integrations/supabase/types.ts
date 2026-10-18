@@ -5063,13 +5063,6 @@ export type Database = {
             foreignKeyName: "featured_bestie_hearts_featured_bestie_id_fkey"
             columns: ["featured_bestie_id"]
             isOneToOne: false
-            referencedRelation: "bestie_funding_progress"
-            referencedColumns: ["featured_bestie_id"]
-          },
-          {
-            foreignKeyName: "featured_bestie_hearts_featured_bestie_id_fkey"
-            columns: ["featured_bestie_id"]
-            isOneToOne: false
             referencedRelation: "featured_besties"
             referencedColumns: ["id"]
           },
@@ -12746,6 +12739,18 @@ export type Database = {
           total_spent: number
         }[]
       }
+      get_featured_bestie_funding_totals: {
+        Args: never
+        Returns: {
+          bestie_id: string
+          bestie_name: string
+          current_monthly_pledges: number
+          featured_bestie_id: string
+          funding_percentage: number
+          monthly_goal: number
+          remaining_needed: number
+        }[]
+      }
       get_marketplace_access_settings: {
         Args: never
         Returns: {
@@ -12824,6 +12829,19 @@ export type Database = {
           monthly_goal: number
           remaining_needed: number
           sponsor_bestie_id: string
+          stripe_mode: string
+        }[]
+      }
+      get_sponsorship_funding_totals: {
+        Args: { p_bestie_ids?: string[] }
+        Returns: {
+          current_monthly_pledges: number
+          ending_amount: number
+          funding_percentage: number
+          monthly_goal: number
+          remaining_needed: number
+          sponsor_bestie_id: string
+          stable_amount: number
           stripe_mode: string
         }[]
       }

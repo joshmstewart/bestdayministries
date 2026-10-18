@@ -1,0 +1,2 @@
+DROP POLICY "Users can view sponsorship funding aggregates" ON public.sponsorships;
+COMMENT ON TABLE public.sponsorships IS 'Private donor records: own/email, explicitly accessible bestie/shared, and admin policies only. Public funding uses aggregate-only functions.';
