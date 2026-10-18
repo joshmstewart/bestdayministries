@@ -168,7 +168,7 @@ const CoffeeShopMenu = () => {
                     )}
                   </div>
 
-                  <div className="p-6">
+                  <div className={categoryItems.every(hasLargeVendorArtwork) ? "py-6" : "p-6"}>
                     {/* Coffee-style pricing table */}
                     {isCoffeeStyle ? (
                       <div className="overflow-x-auto">
@@ -247,17 +247,17 @@ const CoffeeShopMenu = () => {
                         {categoryItems.map((item) => (
                           <div 
                             key={item.id} 
-                            className={`p-4 rounded-xl bg-gradient-to-r from-amber-50/80 to-orange-50/50 border border-amber-100 ${hasLargeVendorArtwork(item) ? "md:col-span-2 lg:col-span-3" : ""}`}
+                            className={hasLargeVendorArtwork(item) ? "md:col-span-2 lg:col-span-3 min-w-0" : "p-4 rounded-xl bg-gradient-to-r from-amber-50/80 to-orange-50/50 border border-amber-100"}
                           >
                             {hasLargeVendorArtwork(item) && item.vendor_logo_url && (
                               <img
                                 src={item.vendor_logo_url}
                                 alt={item.vendor_name || "Vendor logo"}
-                                className="w-full max-w-2xl h-auto mx-auto mb-4"
+                                className="block w-full h-auto mb-4"
                                 loading="lazy"
                               />
                             )}
-                            <div className="flex items-start justify-between gap-3">
+                            <div className={`flex items-start justify-between gap-3 ${hasLargeVendorArtwork(item) ? "px-6 pb-4" : ""}`}>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   {item.is_featured && (
