@@ -146,7 +146,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
  | seed-halloween-stickers | Admin | Supabase | Seeds Halloween sticker collection |
  | send-approval-notification | Internal | Resend | Sends approval notifications |
  | send-automated-campaign | Admin | Resend | Sends automated campaigns |
- | send-contact-reply | Admin/Owner JWT | Resend | Replies only; validates ≤10 MiB image/PDF/Word/Excel bytes, private attachment storage, real email attachments. Request attachments: name/type/size/base64 content; response: success/emailId/replyId. See CONTACT_FORM_SYSTEM.md. |
+ | send-contact-reply | Admin/Owner JWT | Resend | Replies only; validates ≤10 MiB image/PDF/Word/Excel bytes, native private bucket provisioning with policy in 0008, real email attachments. Request attachments: name/type/size/base64 content; response: success/emailId/replyId. Both sandbox sends accepted; provider attachment count blocked by send-only key. See ADMIN_REPLY_ATTACHMENT_VERIFICATION.md. |
  | send-digest-email | Cron | Resend | Sends batched digest emails |
  | send-message-notification | Internal | Resend | Sends message notifications |
  | send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
