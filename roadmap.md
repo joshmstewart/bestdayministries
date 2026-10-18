@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Audit next item only: RLS on every user-facing table; reproduce exposed data, fix confirmed root causes without transaction changes, and record evidence.
 - [x] Add compatible collection fields.
 - [x] Add visual rotate/choose opening and read-only editor previews.
 - [x] Extend generator API and document request/response shapes.

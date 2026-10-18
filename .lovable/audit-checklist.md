@@ -95,7 +95,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Security & Infra
 - [fixed:test-mode detection was dead code — signature header never starts with whsec_] Stripe webhook signature verification — 2026-10-17. BUG: `signature.startsWith("whsec_test_")` was always false (header is `t=...,v1=...`), so test-mode events were verified against the LIVE secret and rejected — test webhook deliveries could never succeed via this path. FIX: try live secret then test secret with a keyless verifier client, derive mode from verified `event.livemode`, reject on livemode/secret mismatch. Deployed (sha c3d73e04). Evidence: forged signature POST → 400 `Invalid signature`; missing header → 400 `Missing stripe-signature header`. Historical logs: 142 live successes, 4 test successes pre-fix. Live valid-signature path unchanged (same constructEventAsync). Note: real end-to-end test-mode event confirmation requires Stripe to send one — next test checkout will exercise it.
-- [ ] RLS on every user-facing table (linter pass)
+- [testing] RLS on every user-facing table (linter pass) — 2026-10-18: 265/265 public tables have RLS; linter has 209 findings. Anonymous sponsorship REST probe exposes donor emails and Stripe identifiers; root-cause consumer audit in progress. No permission changes or transaction mutations applied.
 - [ ] edge function CORS on every function
 
 ## Games & Features
