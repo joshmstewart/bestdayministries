@@ -1,6 +1,7 @@
 # Option 1+ (Conservative Pyramid) Implementation Tracker
 
 **Status:** 🚧 IN PROGRESS  
+**Preview regression coverage:** `tests/unit/sticker-preview.test.ts` verifies same-collection selection, null clearing, and invalid/missing/foreign rejection; additional regressions, not E2E conversions.
 **Security regression coverage:** Additional CORS and sponsorship privacy regressions verify live preflight headers and scoped funding access; these are not E2E conversions and require no archival.
 **Pack-cover regression coverage:** `tests/unit/pack-covers.test.ts` tests production fallback, per-user no-repeat rotation, allowed modes and the 1–6 same-bucket URL rule. Additional feature regressions, not E2E conversions; no archival required.
 **Location regression coverage:** `tests/integration/location-autocomplete.test.tsx` covers manual place entry during key loading, SDK loading/failure, and switching from a saved venue. These are additional regressions, not E2E conversions; no archival required.

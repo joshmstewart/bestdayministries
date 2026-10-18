@@ -124,6 +124,7 @@ Checks if user completed a collection and awards badge:
 ## Edge Functions
 
 ### `sticker-admin-api` pack covers
+`update_collection` also accepts `preview_sticker_id: "sticker UUID" | null`. A non-null UUID must exist in the same collection; otherwise HTTP 400 with a clear error. Null clears the stored choice and retains existing site fallback. `get_collection` and `list_collections` select full rows including this field. Updates log the field and its new value (including null) to `sticker_admin_log`. Existing `auto_set_preview_sticker` only writes WHERE preview_sticker_id IS NULL; the daily scheduled function's four RPCs never write preview_sticker_id, so chosen previews are preserved without scheduler changes.
 Shared `x-sticker-admin-key` authentication; never expose the key to the browser. `set_pack_images` accepts `{action:"set_pack_images",collection_id:"UUID",image_urls:["public sticker-images URL"]}` (1–6 URLs, this project's bucket only), updates both `pack_image_urls` and legacy `pack_image_url` (first URL), logs the write, and returns `{ok:true,data:<full collection row>}`. `create_collection` and `update_collection` accept optional `pack_cover_mode:"rotate"|"choose"`, keep existing response envelopes, and audit writes. Invalid mode/URL/count returns 400 `{ok:false,error:string}`; missing collection returns 404. Legacy `set_pack_image` remains single-field-only and does not override a nonempty array. Cover management is independent of rarity percentages and sticker drops.
 
 ### `scratch-card`
