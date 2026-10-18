@@ -134,7 +134,7 @@ verify_jwt = false
 schedule = "*/5 * * * *"
 
 [functions.send-test-newsletter]
-verify_jwt = true
+verify_jwt = false
 
 [functions.unsubscribe-newsletter]
 verify_jwt = false

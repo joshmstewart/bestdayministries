@@ -1,3 +1,4 @@
+import { invokeTestFunction } from './utils/test-functions';
 /**
  * Global teardown that runs ONCE after ALL test shards complete
  * 
@@ -35,50 +36,16 @@ async function globalTeardown(config: FullConfig) {
         console.log(`  Attempt ${attempts}/${maxAttempts}...`);
       }
       
-      const result = await page.evaluate(async () => {
-        try {
-          // @ts-ignore
-          const { supabase } = await import('/src/integrations/supabase/client.ts');
-          
-          const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
-            body: {
-              // CRITICAL: Comprehensive patterns to match ALL test variations
-              namePatterns: [
-                'Test User',
-                'Test Bestie', 
-                'Test Guardian', 
-                'Test Supporter',
-                'Reply Test User',      // Email test users
-                'Admin Test User',
-                'Thread Test User',
-                'Anonymous Test User',
-                'Authenticated Test User',
-                'E2E', 
-                'Email Test', 
-                'Accept Test', 
-                'Content Test', 
-                'Visual Test'
-              ],
-              emailPrefix: 'test-'  // Catches test-reply-, test-admin-, test-thread-, etc.
-            }
-          });
-
-          if (error) {
-            return { success: false, error: error.message };
-          }
-
-          return { success: true, data };
-        } catch (err) {
-          return { 
-            success: false, 
-            error: err instanceof Error ? err.message : String(err) 
-          };
-        }
+      const { error } = await invokeTestFunction('cleanup-test-data-unified', {
+        namePatterns: ['Test User', 'Test Bestie', 'Test Guardian', 'Test Supporter', 'Reply Test User',
+          'Admin Test User', 'Thread Test User', 'Anonymous Test User', 'Authenticated Test User',
+          'E2E', 'Email Test', 'Accept Test', 'Content Test', 'Visual Test'],
+        emailPrefix: 'test-',
       });
+      const result = { success: !error, error: error?.message };
 
       if (result.success) {
         console.log(`  ✅ Cleanup successful on attempt ${attempts}`);
-        console.log(`  📊 Cleaned: ${JSON.stringify(result.data)}`);
         success = true;
       } else {
         console.error(`  ❌ Cleanup failed on attempt ${attempts}:`, result.error);

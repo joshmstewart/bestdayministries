@@ -79,4 +79,6 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 - `coffee_shop_menu_items.vendor_logo_url` + `vendor_name` (nullable)
 - Admin: Menu item dialog → "Vendor logo" upload → `app-assets/coffee-shop/vendor-logos/`
 - Frontend: `CoffeeShopMenu.tsx` shows the logo beside the item name in all layouts
+- Charlie Joe Chai beside Chai Latte uses a 48px logo (previously 32px); the original transparent asset and all other inline logos are unchanged.
+- The saved Best Day Ever coffee + crepes navigation entry is a child of Stores and still links to `/coffee-shop`.
 - Calvin’s take-home pint/quart entries share one centered supplied poster above the size choices, at natural aspect ratio with a 384px maximum width. Other vendor logos retain their inline sizing. Descriptions include pork or chicken choices; pint $12 and quart $23 remain unchanged.

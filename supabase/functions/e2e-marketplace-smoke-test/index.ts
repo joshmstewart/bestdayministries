@@ -1,3 +1,5 @@
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth } from '../_shared/testFunctionsAuth.ts';
 // E2E Marketplace Smoke Test
 // Exhaustively exercises every downstream stage that fires after a real
 // marketplace payment. Stripe Checkout completion itself cannot be automated
@@ -10,17 +12,13 @@
 //   4. Cleans up all created data.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import Stripe from "npm:stripe@18.5.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const SUPABASE_URL = (Deno.env.get("SUPABASE_URL") ?? "");
+const SERVICE_KEY = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 const STRIPE_TEST_KEY =
   Deno.env.get("MARKETPLACE_STRIPE_SECRET_KEY_TEST") ??
   Deno.env.get("STRIPE_SECRET_KEY_TEST") ??
@@ -82,35 +80,10 @@ async function callFunction(name: string, body: unknown) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth: require admin/owner caller, OR service-role bearer (for agent-initiated runs)
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const bearer = authHeader.replace(/^Bearer\s+/i, "");
-  const isServiceRole = bearer && bearer === SERVICE_KEY;
-  let triggeredBy: string | null = null;
-  if (!isServiceRole) {
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Authorization required" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Invalid auth" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const { data: roleRow } = await supabase
-      .from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "owner"]).maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Admin only" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    triggeredBy = user.id;
-  }
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
+
+  const triggeredBy = testAuthorization.userId;
 
   const body = await req.json().catch(() => ({}));
   const dryRunEmails: boolean = body?.dryRunEmails ?? false;
@@ -135,7 +108,10 @@ serve(async (req) => {
       test_user_email: testEmail,
     })
     .select("id").single();
-  const runId: string = runRow!.id;
+  if (!runRow) return new Response(JSON.stringify({ error: 'Could not record test run' }), {
+    status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+  const runId: string = runRow.id;
 
   try {
     // ───── STAGE 1: Pick vendor + product ─────
@@ -205,7 +181,7 @@ serve(async (req) => {
         body: JSON.stringify({}),
       });
       // create-marketplace-checkout requires real user auth header. Sign in instead:
-      const anon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!);
+      const anon = createClient(SUPABASE_URL, (Deno.env.get("SUPABASE_ANON_KEY") ?? ""));
       const { data: pwSignIn, error: pwErr } = await anon.auth.signInWithPassword({
         email: testEmail, password: `Smoke!${ts}aA1`,
       });

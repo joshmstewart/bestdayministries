@@ -1,24 +1,21 @@
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth, testFunctionsForwardHeaders } from '../_shared/testFunctionsAuth.ts';
 // Internal helper: invokes e2e-marketplace-smoke-test with service-role auth.
-// Public (no JWT) so the agent can curl it directly. Safe: it only proxies
-// to the gated smoke test function.
+// Requires the same shared-secret/admin authorization as the target.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
   const body = await req.text().catch(() => "{}");
   const res = await fetch(`${SUPABASE_URL}/functions/v1/e2e-marketplace-smoke-test`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${SERVICE_KEY}`,
-    },
+    headers: testFunctionsForwardHeaders(req),
     body: body || "{}",
   });
   const text = await res.text();

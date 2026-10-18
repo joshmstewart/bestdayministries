@@ -1,3 +1,4 @@
+import { invokeTestFunction } from './test-functions';
 import { Page } from '@playwright/test';
 
 /**
@@ -30,24 +31,10 @@ export async function cleanupTestData(
 
   try {
     // Call the unified cleanup edge function
-    const response = await page.evaluate(async (opts) => {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        (window as any).VITE_SUPABASE_URL || '',
-        (window as any).VITE_SUPABASE_ANON_KEY || ''
-      );
-
-      const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
-        body: { namePatterns: ['Test', 'E2E'], ...opts }
-      });
-
-      if (error) {
-        console.error('Cleanup error:', error);
-        return { success: false, error: error.message };
-      }
-
-      return { success: true, data };
-    }, options);
+    const { error } = await invokeTestFunction('cleanup-test-data-unified', {
+      namePatterns: ['Test', 'E2E'], ...options,
+    });
+    const response = { success: !error, error: error?.message };
 
     if (response.success) {
       console.log('✅ Test data cleanup completed successfully');

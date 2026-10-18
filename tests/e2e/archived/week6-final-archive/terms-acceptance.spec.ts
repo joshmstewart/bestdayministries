@@ -1,3 +1,4 @@
+import { invokeTestFunction } from '../../../utils/test-functions';
 import { test, expect, Page } from '@playwright/test';
 import percySnapshot from '@percy/playwright';
 
@@ -12,18 +13,8 @@ test.describe('Terms & Privacy Acceptance @fast', () => {
 
   // FIXED: Add cleanup for all created test accounts
   test.afterEach(async ({ page }) => {
-    await page.evaluate(async () => {
-      try {
-        // @ts-ignore
-        const { supabase } = await import('/src/integrations/supabase/client.ts');
-        await supabase.functions.invoke('cleanup-test-data-unified', {
-          body: { 
-            namePatterns: ['Test User', 'Accept Test', 'Content Test', 'Visual Test', 'Test', 'Accept']
-          }
-        });
-      } catch (error) {
-        console.log('Cleanup warning:', error);
-      }
+    await invokeTestFunction('cleanup-test-data-unified', {
+      namePatterns: ['Test User', 'Accept Test', 'Content Test', 'Visual Test', 'Test', 'Accept'],
     });
   });
 

@@ -1,12 +1,11 @@
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth } from '../_shared/testFunctionsAuth.ts';
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 import { applyEmailStyles, styleFooterImages } from "../_shared/emailStyles.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+
 
 interface SendTestRequest {
   campaignId: string;
@@ -359,6 +358,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
+
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -367,36 +369,8 @@ serve(async (req) => {
   try {
     console.log("send-test-newsletter: Starting function execution");
 
-    // Verify admin access
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError) {
-      console.error("Auth error:", authError);
-      throw new Error(`Authentication failed: ${authError.message}`);
-    }
-    
-    if (!user) {
-      throw new Error("No user found");
-    }
-
-    console.log(`User authenticated: ${user.id}`);
-
-    const { data: adminCheck } = await supabaseClient
-      .rpc("has_admin_access", { _user_id: user.id });
-
-    if (!adminCheck) {
-      console.error(`User ${user.id} is not an admin`);
-      throw new Error("Admin access required");
-    }
-
     const { campaignId, testEmail }: SendTestRequest = await req.json();
-    console.log(`Sending test email for campaign ${campaignId} to ${testEmail}`);
+    const user = { id: testAuthorization.userId };
 
     // Fetch campaign details
     const { data: campaign, error: campaignError } = await supabaseClient

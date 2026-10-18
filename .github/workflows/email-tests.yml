@@ -3,6 +3,9 @@ name: Email Tests
 on:
   workflow_dispatch:
 
+env:
+  TEST_FUNCTIONS_SECRET: ${{ secrets.TEST_FUNCTIONS_SECRET }}
+
 jobs:
   email-tests:
     timeout-minutes: 45
@@ -22,10 +25,12 @@ jobs:
       
     - name: Seed test data
       run: |
+        test -n "$TEST_FUNCTIONS_SECRET" || { echo "TEST_FUNCTIONS_SECRET is required"; exit 1; }
         TEST_RUN_ID="${{ github.run_id }}"
-        curl -X POST "${VITE_SUPABASE_URL}/functions/v1/seed-email-test-data-with-retry" \
+        curl --fail-with-body -X POST "${VITE_SUPABASE_URL}/functions/v1/seed-email-test-data-with-retry" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY}" \
+          -H "x-test-functions-secret: ${TEST_FUNCTIONS_SECRET}" \
           -d "{\"testRunId\": \"${TEST_RUN_ID}\"}"
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -41,10 +46,12 @@ jobs:
     - name: Cleanup test data
       if: always()
       run: |
+        test -n "$TEST_FUNCTIONS_SECRET" || { echo "TEST_FUNCTIONS_SECRET is required"; exit 1; }
         TEST_RUN_ID="${{ github.run_id }}"
-        curl -X POST "${VITE_SUPABASE_URL}/functions/v1/cleanup-test-data-unified" \
+        curl --fail-with-body -X POST "${VITE_SUPABASE_URL}/functions/v1/cleanup-test-data-unified" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY}" \
+          -H "x-test-functions-secret: ${TEST_FUNCTIONS_SECRET}" \
           -d "{\"testRunId\": \"${TEST_RUN_ID}\", \"emailPrefix\": \"emailtest-${TEST_RUN_ID}\"}"
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -73,6 +80,7 @@ jobs:
         curl -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+          -H "x-test-functions-secret: ${TEST_FUNCTIONS_SECRET}" \
           -d '{
             "workflow_run": {
               "id": "${{ github.run_id }}",

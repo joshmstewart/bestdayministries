@@ -1,4 +1,5 @@
 # Architecture rules
+- Test-only handlers authorize with a shared guard before work; CI credentials stay in Node-only helpers and wrappers forward original authorization, preventing browser secret exposure and service-role bypass.
 - Menu artwork exceptions are scoped by item IDs in CoffeeShopMenu and share one category poster for related sizes, so adjusting Calvin’s artwork never changes other vendors’ logos.
 - Other-member display reads use profiles_public; private profiles remain scoped to own/admin/linked relationships, and friend-code discovery uses authenticated definer RPCs to prevent email enumeration.
 - Daily fortune scheduling preserves its existing command and gates the two possible UTC midnight slots by America/Denver local hour, avoiding daylight-saving release delays without changing global cron timezone.

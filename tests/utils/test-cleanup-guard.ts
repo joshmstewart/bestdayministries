@@ -1,3 +1,4 @@
+import { invokeTestFunction } from './test-functions';
 /**
  * CRITICAL: Test Cleanup Guard
  * 
@@ -52,31 +53,10 @@ export async function executeCleanupWithRetry(
     console.log(`🧹 Cleanup attempt ${attempt}/${maxRetries}...`);
     
     try {
-      const result = await page.evaluate(async ({ patterns, prefix }) => {
-        try {
-          // @ts-ignore - Supabase is globally available
-          const { supabase } = await import('/src/integrations/supabase/client.ts');
-          
-          const body: any = {};
-          if (patterns.length > 0) body.namePatterns = patterns;
-          if (prefix) body.emailPrefix = prefix;
-          
-          const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
-            body
-          });
-
-          if (error) {
-            return { success: false, error: error.message };
-          }
-
-          return { success: true, data };
-        } catch (err) {
-          return { 
-            success: false, 
-            error: err instanceof Error ? err.message : String(err) 
-          };
-        }
-      }, { patterns: namePatterns, prefix: emailPrefix });
+      const { error } = await invokeTestFunction('cleanup-test-data-unified', {
+        namePatterns, emailPrefix,
+      });
+      const result = { success: !error, error: error?.message };
 
       if (result.success) {
         console.log(`✅ Cleanup succeeded on attempt ${attempt}`);
