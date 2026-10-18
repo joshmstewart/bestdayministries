@@ -8,6 +8,13 @@
       "when": 1792295118526,
       "tag": "0000_create_sticker_admin_log",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792303636084,
+      "tag": "0001_sticker_pack_multiple_covers",
+      "breakpoints": true
     }
   ]
 }
