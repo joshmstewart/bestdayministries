@@ -1,6 +1,7 @@
 # STICKER & PACK OPENING SYSTEM
 
 ## Overview
+Generator writes strip `action` and routing identifiers before database insert/update. Plain-object database errors return their `message` in the existing error envelope, never credentials. Regression: `tests/unit/sticker-admin-request.test.ts`.
 Complete digital sticker collection system with daily free packs, purchasable bonus packs, rarity-based drops, collection progress tracking, and animated pack opening experience.
 
 ## Core Features
