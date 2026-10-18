@@ -18,10 +18,17 @@ Deno.serve(async (req) => {
 
   try {
     const rawBody = new Uint8Array(await req.arrayBuffer());
-    logProviderVerification('printify', verifyProviderSignature(
+    const outcome = verifyProviderSignature(
       'printify', rawBody, req.headers.get('X-Pfy-Signature'), Deno.env.get('PRINTIFY_WEBHOOK_SECRET'),
-    ));
-    // Deliberately LOG-ONLY until signed provider delivery is confirmed.
+    );
+    logProviderVerification('printify', outcome);
+    // ENFORCED: reject anything without a valid signature, and fail closed when
+    // PRINTIFY_WEBHOOK_SECRET is not configured (outcome === 'missing-config').
+    if (outcome !== 'pass') {
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+      });
+    }
     const payload = JSON.parse(new TextDecoder().decode(rawBody));
 
     const supabaseClient = createClient(
