@@ -247,13 +247,13 @@ const CoffeeShopMenu = () => {
                         {categoryItems.map((item) => (
                           <div 
                             key={item.id} 
-                            className="p-4 rounded-xl bg-gradient-to-r from-amber-50/80 to-orange-50/50 border border-amber-100"
+                            className={`p-4 rounded-xl bg-gradient-to-r from-amber-50/80 to-orange-50/50 border border-amber-100 ${hasLargeVendorArtwork(item) ? "md:col-span-2 lg:col-span-3" : ""}`}
                           >
                             {hasLargeVendorArtwork(item) && item.vendor_logo_url && (
                               <img
                                 src={item.vendor_logo_url}
                                 alt={item.vendor_name || "Vendor logo"}
-                                className="h-64 w-full object-contain mb-4"
+                                className="w-full max-w-2xl h-auto mx-auto mb-4"
                                 loading="lazy"
                               />
                             )}
