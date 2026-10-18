@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [x] Current Security Fix 4: GitHub denies unsigned/wrong/supporter, correct header reaches harmless parsing; provider log-only missing-config confirmed, 27 tests pass, four reporting workflows fail visibly on auth errors. Provider checklist documented; no settings/order/user changes.
 - [x] Marla: supplied logo at coffee page top; hosted asset HTTP 200, desktop 192px/phone 160px screenshots verified, artwork preserved.
 - [x] Current request A: correct Cloud secret reaches harmless 400 validation; anon/supporter remain 401; all four Actions workflows forward secret header. Actual GitHub execution not observed.
 - [ ] Current request B: both controls implemented; 13 rule tests pass, sandbox email 01a15147-7041-742c-b39d-d12bc452777f accepted, private saved files/history and matching PDF download verified, server rejects HEIC/fake PDF and supporter. Blocker: independent provider receipt check returned 401 using available read credential; delivery/received attachment verification remains unavailable.
@@ -9,7 +10,7 @@
 - [x] Make Calvin’s artwork edge-to-edge: removed poster cap and item/category insets; browser measured 1022px desktop / 356px phone, both pork/chicken descriptions present and build OK.
 - [x] Enlarge Calvin’s green chili artwork to full menu width (672px maximum) and add pork or chicken choices; public desktop/phone screenshots verify both entries and unchanged $12/$23 prices.
 - [x] Enlarge Calvin’s Famous Green Chili artwork: both posters 256px high, Chai unchanged at 32px; desktop/phone menu screenshots verified, prices unchanged.
-- [ ] Security fix 4 after fix 3: inspect Printify/Sentry/GitHub receivers and legitimate callers; harmless unsigned probes; verify signatures before work; provider-dependent Printify/Sentry enforcement stays log-only until configured; GitHub shared-secret workflow headers; re-test. No existing order/user-data changes.
+- [x] Security fix 4 after fix 3: requested GitHub enforcement and Printify/Sentry log-only verification implemented/deployed; harmless evidence in docs/WEBHOOK_SECURITY_FIX_4.md. Future provider enforcement awaits Josh’s setup/approval.
 - [x] Security fix 3 requested harmless confirmation: fifteen guarded handlers; prior 45 denied checks/15 preflights plus fresh correct-secret validation and anon/supporter denial; Actions source sends header. Actual GitHub run not observed; no protected operation executed. Broader unaudited bootstrap scope remains separate.
 - [x] Coffee menu: Calvin’s Famous Green Chili added under Take Home, pint $12 and quart $23; both prices and supplied artwork verified on the public page.
 - [x] Security fix 2 privacy remediation: verified already-applied 0007/21 caller edits, live ledger hash and preserved policies; fresh supporter/anon REST and browser checks, 4 regressions, RPC/view permissions pass; exact inventory/evidence in docs/PROFILE_EMAIL_SECURITY_FIX_2.md. No user-data changes.

@@ -229,8 +229,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 **Verifies external service signatures for security**
 
 - `stripe-webhook` - Verifies Stripe signature
-- `github-test-webhook` - **Not verified as of 2026-10-18**: unsigned malformed requests reach JSON parsing; shared-header verification queued after fix 3. See `WEBHOOK_SECURITY_FIX_4.md`.
-- `sentry-webhook` - **Not verified as of 2026-10-18**: unsigned malformed requests reach JSON parsing; integration signature rollout queued after fix 3. See `WEBHOOK_SECURITY_FIX_4.md`.
+- `github-test-webhook` - Enforces `x-test-functions-secret` matching TEST_FUNCTIONS_SECRET before processing; unsigned/wrong header → 401, no JWT bypass. Four Actions reporting steps forward the secret and fail on HTTP errors. See `WEBHOOK_SECURITY_FIX_4.md`.
+- `sentry-webhook` - LOG-ONLY raw-body HMAC-SHA256 verification of Sentry-Hook-Signature with SENTRY_WEBHOOK_SECRET (integration Client Secret); delivery is not rejected. See `WEBHOOK_SECURITY_FIX_4.md`.
+- `printify-webhook` - LOG-ONLY raw-body HMAC-SHA256 verification of X-Pfy-Signature (`sha256=<hex>`) with PRINTIFY_WEBHOOK_SECRET; delivery is not rejected. Fixed verification outcomes only; no body/signature logs.
 - `resend-webhook` - Verifies Resend signature, skips non-campaign emails
 - `process-inbound-email` - Verifies CloudFlare signature
 - `aftership-webhook` - ⚠️ NOT FUNCTIONAL
@@ -351,7 +352,7 @@ try {
 - **Logging**: All functions log errors with context for debugging
 - **Rate Limiting**: Notification emails implement rate limiting (1/hour per user/type)
 - **Dual Mode Stripe**: Payment functions support test/live mode via `app_settings.stripe_mode`
-- **Security**: All webhook functions verify signatures before processing
+- **Security**: Verification modes differ: GitHub shared-header enforcement is active; Printify/Sentry remain explicitly log-only until provider setup and signed delivery are proven. See WEBHOOK_SECURITY_FIX_4.md.
 - **Testing**: Test functions prefixed with `test-` or contain "test" in name
 - **Newsletter placeholders**: Newsletter sends (including **test** sends) replace `{{organization_name}}`, `{{month}}`, `{{year}}`, and `{{site_url}}`. Test sends keep links clickable but disable tracking.
 

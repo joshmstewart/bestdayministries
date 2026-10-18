@@ -58,7 +58,8 @@ jobs:
         SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       run: |
         STATUS="${{ needs.fast-tests.result == 'success' && 'success' || 'failure' }}"
-        curl -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
+        test -n "$TEST_FUNCTIONS_SECRET" || { echo "TEST_FUNCTIONS_SECRET is required"; exit 1; }
+        curl --fail-with-body -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
           -H "x-test-functions-secret: ${TEST_FUNCTIONS_SECRET}" \

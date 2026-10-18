@@ -1,4 +1,5 @@
 # Architecture rules
+- Webhook verification uses raw request bytes and constant-time comparison in a shared helper; GitHub is secret-only, and provider enforcement is a separate reviewed change so log-only rollout cannot disrupt deliveries.
 - Coffee-page brand artwork uses a dedicated static CDN asset pointer in CoffeeShopHome, keeping page branding independent from menu-item vendor artwork.
 - Admin reply files use shared browser/server validation and private storage references resolved by authenticated downloads; the server builds Resend attachments from validated bytes, never caller-provided URLs.
 - Test-only handlers authorize with a shared guard before work; CI credentials stay in Node-only helpers and wrappers forward original authorization, preventing browser secret exposure and service-role bypass.

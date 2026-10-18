@@ -1,9 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { verifyGitHubTestSecret } from '../_shared/webhookVerification.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,12 +8,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    if (!await verifyGitHubTestSecret(req, Deno.env.get('TEST_FUNCTIONS_SECRET'))) {
+      console.info('[github-test-webhook] authorization denied');
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const payload = await req.json();
-    console.log('Received GitHub webhook:', JSON.stringify(payload).substring(0, 500));
 
     // Extract relevant data from GitHub Actions webhook
     const workflowRun = payload.workflow_run || payload;
@@ -39,7 +41,6 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log('Inserting test run:', testRunData);
 
     const { data, error } = await supabase
       .from('test_runs')
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('[github-test-webhook] processing failed');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 

@@ -900,7 +900,8 @@ CRITICAL:7-rules[profiles_public|is_moderated-only|client-role-filter|height-120
 ## SENTRY_ERROR_LOGGING
 OVERVIEW:capture-errors→Sentry→webhook→error_logs-table→admin-Issues-tab
 DB:error_logs[error_message|type|stack|user|browser|url|sentry_event_id|severity|env|metadata]
-EDGE:sentry-webhook[receive-alert→parse→insert-db]
+EDGE:sentry-webhook[raw-body-HMAC-Sentry-Hook-Signature→LOG-ONLY-pass/fail/missing-config→parse→insert-db]
+SECURITY:SENTRY_WEBHOOK_SECRET[integration-Client-Secret]|no-provider-changes|enforcement-separate-after-signed-delivery|DOC:WEBHOOK_SECURITY_FIX_4.md
 FRONTEND:ErrorLogsManager[list-filter-search-by-type-user-severity]|ErrorBoundary[catch-log-retry]
 WORKFLOW:1)Sentry-catch→2)alert-webhook→3)log-DB→4)admin-view
 SETUP:Sentry-dashboard[Alerts→WebHooks→add-edge-URL]
@@ -1000,7 +1001,8 @@ TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
 PERSISTENT-TEST-ACCOUNTS:testbestie@example.com|testguardian@example.com|testsupporter@example.com|PROTECTED-from-cleanup|use-for-role-testing
 EDGE:create-persistent-test-accounts[admin|create-verify]|cleanup-test-data-unified[test|exclude-persistent]
 DB:test_runs[status|workflow|commit|branch|duration|url|test_count|passed|failed|skipped|error|metadata]
-EDGE:github-test-webhook[receive-GH→parse→insert-db]|cleanup-test-data-unified[email+E2E-cleanup]
+EDGE:github-test-webhook[require-x-test-functions-secret→parse→insert-db]|cleanup-test-data-unified[email+E2E-cleanup]
+WEBHOOK-SECURITY:GitHub-secret-only-no-JWT-bypass|Actions-header+fail-on-HTTP-error|Printify-X-Pfy-Signature-HMAC-LOG-ONLY[PRINTIFY_WEBHOOK_SECRET]|no-provider-settings-changed|DOC:WEBHOOK_SECURITY_FIX_4.md
 FRONTEND:TestRunsManager[list-realtime-status-badges-links-to-GH-clean-button]
 WORKFLOW:1)push-code→2)GH-Actions-run→3)webhook-log→4)admin-view→5)cleanup-button
 SETUP:GH-secrets[VITE_SUPABASE_URL+VITE_SUPABASE_PUBLISHABLE_KEY+PERCY_TOKEN]

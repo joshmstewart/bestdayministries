@@ -1,29 +1,28 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders as sharedCorsHeaders } from '../_shared/corsHeaders.ts';
+import { logProviderVerification, verifyProviderSignature } from '../_shared/webhookVerification.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  ...sharedCorsHeaders,
+  'Access-Control-Allow-Headers': `${sharedCorsHeaders['Access-Control-Allow-Headers']}, x-pfy-signature`,
 };
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[printify-webhook] ${step}${detailsStr}`);
+const logStep = (step: string) => {
+  console.log(`[printify-webhook] ${step}`);
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const payload = await req.json();
-    
-    logStep('Received webhook', { 
-      type: payload.type,
-      resource: payload.resource?.type,
-      id: payload.resource?.id 
-    });
+    const rawBody = new Uint8Array(await req.arrayBuffer());
+    logProviderVerification('printify', verifyProviderSignature(
+      'printify', rawBody, req.headers.get('X-Pfy-Signature'), Deno.env.get('PRINTIFY_WEBHOOK_SECRET'),
+    ));
+    // Deliberately LOG-ONLY until signed provider delivery is confirmed.
+    const payload = JSON.parse(new TextDecoder().decode(rawBody));
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -39,7 +38,7 @@ serve(async (req) => {
       const printifyOrderId = payload.resource?.id || payload.resource?.data?.id;
       
       if (!shipment || !printifyOrderId) {
-        logStep('No shipment data in webhook', payload);
+        logStep('No shipment data in webhook');
         return new Response(JSON.stringify({ success: true, skipped: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -49,7 +48,7 @@ serve(async (req) => {
       const carrier = shipment.carrier || 'unknown';
       const trackingUrl = shipment.tracking_url || `https://track.aftership.com/${carrier}/${trackingNumber}`;
 
-      logStep('Processing shipment', { printifyOrderId, trackingNumber, carrier });
+      logStep('Processing shipment');
 
       // Find order by printify_order_id in order_items
       const { data: orderItems, error: findError } = await supabaseClient
@@ -58,7 +57,7 @@ serve(async (req) => {
         .eq('printify_order_id', printifyOrderId);
 
       if (findError || !orderItems?.length) {
-        logStep('Order not found for Printify ID', { printifyOrderId, error: findError });
+        logStep('Order not found for Printify ID');
         return new Response(JSON.stringify({ success: true, orderNotFound: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -79,7 +78,7 @@ serve(async (req) => {
         .eq('printify_order_id', printifyOrderId);
 
       if (updateError) {
-        logStep('Error updating order items', { error: updateError });
+        logStep('Error updating order items');
         throw updateError;
       }
 
@@ -104,10 +103,10 @@ serve(async (req) => {
           }),
         });
 
-        const emailResult = await emailResponse.json();
-        logStep('Shipped email triggered', emailResult);
+        await emailResponse.json();
+        logStep('Shipped email triggered');
       } catch (emailError) {
-        logStep('Error sending shipped email', { error: emailError });
+        logStep('Error sending shipped email');
         // Don't fail the webhook for email errors
       }
 
@@ -135,22 +134,22 @@ serve(async (req) => {
           .eq('printify_order_id', printifyOrderId);
 
         if (updateError) {
-          logStep('Error updating delivery status', { error: updateError });
+          logStep('Error updating delivery status');
         } else {
-          logStep('Order marked as delivered', { printifyOrderId });
+          logStep('Order marked as delivered');
         }
       }
     }
 
     // Log other webhook types for debugging
-    logStep('Webhook processed', { type: payload.type });
+    logStep('Webhook processed');
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('[printify-webhook] Error:', error);
+    console.error('[printify-webhook] processing failed');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
