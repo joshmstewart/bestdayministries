@@ -43,6 +43,13 @@
       "when": 1792356077196,
       "tag": "0005_coffee_menu_item_vendor_logo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792360158541,
+      "tag": "0006_allowlist_signup_roles",
+      "breakpoints": true
     }
   ]
 }
