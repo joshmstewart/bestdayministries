@@ -10,3 +10,5 @@ This is not a completed coin audit. Manual client-side spending remains in Color
 
 ## Evidence
 Persistent test user `026c7daa-aab4-426a-b6e9-0e437ea5317e`: the failed Holidays purchase created spending row `93d16ede-299a-4407-9e8b-dc34306266a5` for -50; balance became zero and no ownership was created. Preserve this row; any test reimbursement must be an additive credit, not deletion.
+
+Reimbursement `c14343b3-a65a-43b0-b476-ae14fbfa4985` credited 50 before re-test. Corrected live UI purchase created one -50 spending row `da32a9e6-cf87-44cf-b76e-14319e37e648` with category reference, ownership `59393b33-25f3-4fbe-93c4-6fc035c700ac`, and displayed nine unlocked categories and balance zero. Screenshot: `/tmp/browser/coin-audit/baseline-purchased.png`. No records deleted or real-money operations performed.

@@ -16,6 +16,8 @@ vi.mock('@/lib/errorToast', () => ({ showErrorToast: vi.fn(), showErrorToastWith
 
 describe('joke category coin purchase', () => {
   it('spends 50 once and records ownership in the category table without another ledger write', async () => {
+    mocks.deduct.mockResolvedValue(true);
+    mocks.insert.mockResolvedValue({ error: null });
     mocks.from.mockImplementation((table: string) => {
       if (table === 'joke_categories') {
         const chain = { select: vi.fn(), eq: vi.fn(), neq: vi.fn(), order: vi.fn() };
