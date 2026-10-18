@@ -29,6 +29,13 @@
       "when": 1792305321320,
       "tag": "0003_close_public_sponsorship_donor_access",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792307767191,
+      "tag": "0004_daily_fortune_denver_midnight",
+      "breakpoints": true
     }
   ]
 }
