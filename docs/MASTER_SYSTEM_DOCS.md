@@ -1392,6 +1392,7 @@ TABS:books|community|gallery
 DEEP-LINK:TAB-PARAM→/games/coloring-book?tab=community|?tab=gallery|default=books
 
 ## DAILY_FORTUNES|/admin→Daily-Engagement-tab|admin
+RELEASE:Denver-midnight→cron-06:00+07:00-UTC→local-hour-zero-only→one-generator-call/day; preserve-command-and-connection-settings. DOC:DAILY_FORTUNE_RELEASE_AUDIT.md
 OVERVIEW:Fortune content library + AI batch generation with approvals.
 DB:daily_fortunes[theme|is_approved|is_archived]
 ADMIN:FortunesManager[Generate-with-AI|bulk approve/archive/delete|Theme Coverage Dashboard]

@@ -272,6 +272,8 @@ Converting 414 E2E tests into a Test Pyramid structure:
 
 ## Progress Tracker
 
+Audit regression 2026-10-18: added `tests/unit/daily-fortune-release.test.ts` (3 tests) for the applied Denver-midnight cron schedule, summer/winter and DST transitions. This is an additive rule regression, not an E2E conversion; no E2E files archived. Live reveal/readback evidence is recorded in `DAILY_FORTUNE_RELEASE_AUDIT.md`.
+
 ### Test Count Summary
 | Category | Before | After | Status |
 |----------|--------|-------|--------|
