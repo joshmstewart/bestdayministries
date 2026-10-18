@@ -1,6 +1,7 @@
 # Option 1+ (Conservative Pyramid) Implementation Tracker
 
 **Status:** 🚧 IN PROGRESS
+**Webhook security regression coverage:** 19 additional raw-body signature/header tests plus 8 existing authorization tests pass; no E2E conversion or archival. GitHub deployed denials/correct-header harmless parsing and Printify/Sentry log-only missing-config verified; signed-provider deliveries and actual Actions run unverified.
 **Profile privacy regression coverage:** Four read-only live REST checks verify supporter own-profile scope, safe public display fields, and anonymous denial of private profiles/sponsorship emails; additional security coverage, not E2E conversion.
 **Signup security regression coverage:** 12 read-only live trigger checks plus 6 actual create-user-handler regression tests; additional security coverage, not E2E conversions, no archival.  
 **Coin regression coverage:** Joke category purchase regression checks correct ownership writes and one deductCoins call; additional coverage, not an E2E conversion.
