@@ -1,4 +1,5 @@
 # Architecture rules
+- Generator preview updates validate same-collection sticker membership; automatic preview assignment remains null-only and scheduled status functions never write previews, preserving explicit choices.
 - SDK CORS imports must use the shared edge CORS extension when browser runtime headers are required, because the SDK header list can lag newer clients.
 
 - LocationAutocomplete must keep one mounted manual input independent of Google; suggestions come only from the places-autocomplete edge function (connector gateway), never from browser Places scripts, because Google auth failures disable inputs it controls.

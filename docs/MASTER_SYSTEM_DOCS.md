@@ -910,6 +910,7 @@ BACKGROUND_RULE:deterministic-theme-palette-by-pack-name; admins-can-override-by
 DOC:MEMORY_MATCH_SYSTEM.md
 
 ## STICKER_PACK_SYSTEM
+GENERATOR-PREVIEW:update_collection[preview_sticker_id:UUID|null→same-collection-check→400-if-missing-or-foreign];get/list[full-row-includes-preview];audit[new-preview-value];null[existing-fallback];auto-set[only-null];scheduled-status-RPCs[never-write-preview]
 PACK-COVERS:pack_image_urls[text[];empty→legacy-pack_image_url]|pack_cover_mode[rotate-default|choose];rotate[session-history-per-user-and-collection;no-consecutive-repeat];choose["Pick a pack!"+3-column-grid→existing-tear];visual-only;NO-changes-to-scratch-card-payload-or-pull-logic
 GENERATOR:sticker-admin-api.set_pack_images[1–6-project-sticker-images-URLs→array+legacy-first-cover+audit-log];create/update_collection[pack_cover_mode];editor[read-only-thumbnails+mode-dropdown]
 OVERVIEW:daily-free-packs+purchasable-bonus-packs+rarity-based-drops+animated-pack-opening+collection-progress+duplicate-tracking

@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/corsHeaders.ts";
 import { validatePackCoverMode, validatePackImageUrls } from "./packCoverValidation.ts";
 import { withoutRoutingFields, databaseErrorMessage } from "./requestFields.ts";
+import { validatePreviewSticker } from "./previewValidation.ts";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
 
@@ -170,7 +171,7 @@ serve(async (req) => {
       case "update_collection": {
         const { collection_id, action: _action, ...rest } = body;
         if (!collection_id) return json({ ok: false, error: "collection_id required" }, 400);
-        const { out, unknown } = pickFields(rest, COLLECTION_FIELDS);
+        const { out, unknown } = pickFields(rest, [...COLLECTION_FIELDS, "preview_sticker_id"]);
         if (unknown.length) {
           return json({ ok: false, error: `Unknown fields: ${unknown.join(", ")}` }, 400);
         }
@@ -183,6 +184,15 @@ serve(async (req) => {
         if (Object.keys(out).length === 0) {
           return json({ ok: false, error: "No fields to update" }, 400);
         }
+        if (Object.prototype.hasOwnProperty.call(out, 'preview_sticker_id')) {
+          const previewError = await validatePreviewSticker(out.preview_sticker_id, collection_id, async (id) => {
+            const { data: sticker, error } = await supabase.from('stickers')
+              .select('collection_id').eq('id', id).maybeSingle();
+            if (error) throw error;
+            return sticker;
+          });
+          if (previewError) return json({ ok: false, error: previewError }, 400);
+        }
         const { data, error } = await supabase
           .from("sticker_collections")
           .update(out)
@@ -191,7 +201,11 @@ serve(async (req) => {
           .maybeSingle();
         if (error) throw error;
         if (!data) return json({ ok: false, error: "Collection not found" }, 404);
-        await log({ collection_id, fields: Object.keys(out) });
+        await log({
+          collection_id, fields: Object.keys(out),
+          ...(Object.prototype.hasOwnProperty.call(out, 'preview_sticker_id')
+            ? { preview_sticker_id: data.preview_sticker_id } : {}),
+        });
         return json({ ok: true, data });
       }
 
