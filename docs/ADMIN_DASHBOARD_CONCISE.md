@@ -24,7 +24,7 @@ Central admin interface (`/admin`) for managing all platform content and setting
 - View/edit user profiles
 - Assign/change roles
 - Grant permissions (e.g., moderation)
-- Create test accounts
+- No bundled test credentials, test login shortcut, or test-account provisioning card (security remediation: `TEST_ACCOUNT_PRIVILEGE_REMOVAL.md`)
 - Delete users
 - Send password resets
 

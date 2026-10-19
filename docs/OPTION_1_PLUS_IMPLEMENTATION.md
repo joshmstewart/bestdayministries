@@ -275,6 +275,8 @@ Converting 414 E2E tests into a Test Pyramid structure:
 
 ## Progress Tracker
 
+Security regression 2026-10-19: four additional live read-only checks in `tests/security/test_account_demotion_test.py` verify exact supporter role, denied admin test-run and unpublished newsletter reads, and own-only private profile access using the pre-demotion testadmin session. All pass; no E2E conversion or archival.
+
 Audit regression 2026-10-18: added `tests/unit/daily-fortune-release.test.ts` (3 tests) for the applied Denver-midnight cron schedule, summer/winter and DST transitions. This is an additive rule regression, not an E2E conversion; no E2E files archived. Live reveal/readback evidence is recorded in `DAILY_FORTUNE_RELEASE_AUDIT.md`.
 
 ### Test Count Summary

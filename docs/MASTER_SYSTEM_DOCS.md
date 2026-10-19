@@ -996,6 +996,7 @@ ANALYSIS-PROCESS:TEST_ANALYSIS_PROCESS.md[7-step-systematic-approach]→parse→
 DOC:TEST_SKIP_PHILOSOPHY.md[zero-skips-approach]|TEST_FIXES_2025_10_23.md[recent-fixes]|TESTING_BEST_PRACTICES.md[guidelines]|TEST_ANALYSIS_PROCESS.md[analysis-workflow]
 
 ## AUTOMATED_TESTING
+PRODUCTION-TEST-ROLE-REVOCATION[2026-10-19]:eight-audited-privileged-example.com-accounts→exactly-one-supporter-role|system-and-real-accounts-unchanged|UserManagement-credential-login/provisioning-card-removed|same-session-test_runs-REST-denied-by-empty-result|DOC:TEST_ACCOUNT_PRIVILEGE_REMOVAL.md
 OVERVIEW:Playwright-E2E-tests→GitHub-Actions→webhook→test_runs-table→admin-Testing-tab
 TEST-ACCOUNT:test@example.com|testpassword123|REQUIRED-for-auth-pages
 PERSISTENT-TEST-ACCOUNTS:testbestie@example.com|testguardian@example.com|testsupporter@example.com|PROTECTED-from-cleanup|use-for-role-testing
