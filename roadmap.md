@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Josh: demote exactly eight audited privileged @example.com test accounts to one supporter role; preserve system/real accounts; remove bundled test credentials; verify live REST denial.
 - [x] Marla: replaced top coffee-page logo with supplied horizontal 9.PNG; original artwork and menu logos preserved; desktop 576×288 and phone 358×179 verified.
 - [ ] Finish reply provider attachment counts: both components' sandbox sends/history/downloads/control/oversize/EXE rejection and supporter/anon storage denial verified; private bucket native provisioning documented, 0008 policy-only. Blocker: Resend attachment-list 401 send-only key; requires securely supplied read-capable credential. MessagesManager has no rendered Admin entry; direct authenticated browser component verified, not normal navigation.
 - [x] Current Security Fix 4: GitHub denies unsigned/wrong/supporter, correct header reaches harmless parsing; provider log-only missing-config confirmed, 27 tests pass, four reporting workflows fail visibly on auth errors. Provider checklist documented; no settings/order/user changes.
