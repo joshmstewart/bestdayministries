@@ -508,3 +508,7 @@ An order_item is "missed" when ALL of these are true:
 
 ## places-autocomplete
 POST, login required. Body `{action:"autocomplete",input,sessionToken}` → `{suggestions:[{placeId,text,main,secondary}]}` (max 5, Longmont bias) or `{action:"details",placeId,sessionToken}` → `{value}` full address. Uses Google Maps connector (GOOGLE_MAPS_API_KEY + LOVABLE_API_KEY) via gateway. Errors return Google status/body.
+
+
+## Six receipt/summary/Stripe endpoints
+Six endpoints now authorize before business work: send-sponsorship-receipt, send-batch-year-end-summaries, generate-missing-donation-receipts, send-corrected-receipts, send-missing-receipt-emails, check-stripe-customer. Exact service-role bearer or verified admin/owner JWT plus roles only; missing/invalid 401, ordinary roles 403, OPTIONS 200, authorized GET 405. No own-user caller exists. Payload/business logic and cron job 12 unchanged. 12 unit tests and 30 live auth/preflight checks pass. Business email/Stripe flows are source-audited, not end-to-end verified; pre-existing receiptId/backfill issues remain. IMPORTANT: unintended pre-fix probes triggered real receipt sends and test-donation Stripe reads/writes; full incident and evidence in RECEIPT_ENDPOINT_SECURITY_FIX_2.md. No publishing.

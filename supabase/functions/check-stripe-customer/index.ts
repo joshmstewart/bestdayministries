@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+import Stripe from "npm:stripe@14.21.0";
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireFinancialFunctionsAuth } from '../_shared/financialFunctionsAuth.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,6 +9,8 @@ serve(async (req) => {
   }
 
   try {
+    const denied = await requireFinancialFunctionsAuth(req, corsHeaders);
+    if (denied) return denied;
     const { customerId } = await req.json();
     
     if (!customerId) {
