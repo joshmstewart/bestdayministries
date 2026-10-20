@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@4.0.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3.22.4";
 import { corsHeaders } from '../_shared/corsHeaders.ts';
 import { requireFinancialFunctionsAuth } from '../_shared/financialFunctionsAuth.ts';
