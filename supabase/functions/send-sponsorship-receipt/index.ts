@@ -1,12 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+import { Resend } from "npm:resend@4.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { z } from "npm:zod@3.22.4";
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireFinancialFunctionsAuth } from '../_shared/financialFunctionsAuth.ts';
 
 // Validation schema for receipt request - flexible to accept just sponsorshipId
 const receiptRequestSchema = z.object({
@@ -62,6 +59,8 @@ serve(async (req) => {
   }
 
   try {
+    const denied = await requireFinancialFunctionsAuth(req, corsHeaders);
+    if (denied) return denied;
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
     const supabaseAdmin = createClient(

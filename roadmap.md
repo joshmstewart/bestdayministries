@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Josh: six receipt/summary/Stripe lookup endpoints: pre-work service-role/admin/owner authorization; safe denied probes only after deployment; document unintended pre-fix sends and test-donation Stripe reads/writes; no publishing. Legitimate callers inventoried; preservation tests pending.
 - [ ] Josh: Vault cron credential rotation blocked: migration tool refused "Agent access to secrets is not allowed." No live changes/deployment; jobs 5/13/14 unchanged. Requires permitted database Vault access before rotation and old-header/next-hourly-run verification. See docs/VAULT_CRON_SECURITY_FIX.md; backend only, no publishing.
 - [x] Josh: eight audited privileged @example.com test accounts now have exactly one supporter role; protected 278 non-example roles fingerprint unchanged; system owner preserved; bundled test card removed; same-session REST test_runs 1→0, admin RPC false, four regressions pass. Frontend removal requires publishing; provisioners unchanged as scoped.
 - [x] Marla: replaced top coffee-page logo with supplied horizontal 9.PNG; original artwork and menu logos preserved; desktop 576×288 and phone 358×179 verified.
