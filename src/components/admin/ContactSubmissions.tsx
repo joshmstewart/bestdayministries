@@ -135,12 +135,48 @@ export default function ContactSubmissions() {
 
   const loadSubmissions = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    
-    const { data } = await supabase
-      .from("contact_form_submissions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
+
+    // Lightweight pass over all submissions + replies (same inputs as the
+    // Messages badge) so anything the badge counts is always listed.
+    const [summaryResult, replySummaryResult] = await Promise.all([
+      supabase.from("contact_form_submissions").select("id, created_at, status, replied_at"),
+      supabase.from("contact_form_replies").select("submission_id, sender_type, created_at"),
+    ]);
+    const summaries = summaryResult.data || [];
+    const replySummaries = replySummaryResult.data || [];
+
+    const latestReplyBySub = new Map<string, number>();
+    const latestUserReplyBySub = new Map<string, number>();
+    replySummaries.forEach(r => {
+      const t = new Date(r.created_at).getTime();
+      if (t > (latestReplyBySub.get(r.submission_id) || 0)) latestReplyBySub.set(r.submission_id, t);
+      if (r.sender_type === "user" && t > (latestUserReplyBySub.get(r.submission_id) || 0)) {
+        latestUserReplyBySub.set(r.submission_id, t);
+      }
+    });
+
+    const needsAttentionIds = summaries
+      .filter(s => {
+        if (s.status === "new") return true;
+        const u = latestUserReplyBySub.get(s.id);
+        return !!u && (!s.replied_at || u > new Date(s.replied_at).getTime());
+      })
+      .map(s => s.id);
+
+    const recentIds = [...summaries]
+      .map(s => ({
+        id: s.id,
+        activity: Math.max(new Date(s.created_at).getTime(), latestReplyBySub.get(s.id) || 0),
+      }))
+      .sort((a, b) => b.activity - a.activity)
+      .slice(0, 50)
+      .map(s => s.id);
+
+    const idsToLoad = Array.from(new Set([...needsAttentionIds, ...recentIds]));
+
+    const { data } = idsToLoad.length > 0
+      ? await supabase.from("contact_form_submissions").select("*").in("id", idsToLoad)
+      : { data: [] as any[] };
 
     if (data) {
       const submissionIds = data.map(s => s.id);
