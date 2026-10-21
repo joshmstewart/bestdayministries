@@ -62,39 +62,6 @@ const TestRunsManager = () => {
     }
   };
 
-  const cleanupTestData = async () => {
-    try {
-      toast({
-        title: "Cleaning up test data...",
-        description: "Removing all test entries from the database. This may take a moment...",
-      });
-
-      // Call cleanup to catch all test data patterns
-      const { data, error } = await supabase.functions.invoke('cleanup-test-data-unified', {
-        body: {
-          namePatterns: ['Test', 'E2E', 'Email Test', 'Accept Test', 'Content Test', 'Visual Test']
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Cleanup Complete",
-        description: data?.message || "All test data has been successfully removed",
-      });
-
-      // Refresh the test runs list
-      await fetchTestRuns();
-    } catch (error: any) {
-      console.error('Error cleaning test data:', error);
-      toast({
-        title: "Cleanup Failed",
-        description: error.message || "Failed to clean test data. Check console for details.",
-        variant: "destructive",
-      });
-    }
-  };
-
   useEffect(() => {
     fetchTestRuns();
 
@@ -175,13 +142,9 @@ const TestRunsManager = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Test Run History</CardTitle>
           <div className="flex gap-2">
-            <Button 
-              onClick={cleanupTestData} 
-              variant="destructive" 
-              size="sm"
-            >
-              Clean Test Data
-            </Button>
+            <p className="text-sm text-muted-foreground self-center">
+              Test environment tools are disabled on the live site.
+            </p>
             <Button onClick={fetchTestRuns} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh

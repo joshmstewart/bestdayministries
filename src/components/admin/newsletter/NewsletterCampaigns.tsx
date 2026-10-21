@@ -389,6 +389,9 @@ export const NewsletterCampaigns = () => {
                         failedCount={campaign.failed_count || 0}
                         queuedCount={campaign.queued_count || 0}
                         processedCount={campaign.processed_count || 0}
+                        targetAudience={campaign.target_audience}
+                        recipientCount={recipientCounts?.[campaign.id]}
+                        campaignTitle={campaign.title}
                         onSendComplete={() => queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] })}
                       />
                     </>

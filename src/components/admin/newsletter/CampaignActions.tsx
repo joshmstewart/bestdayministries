@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Send, Mail, RotateCcw, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,12 +14,49 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const ROLE_LABELS: Record<string, string> = {
+  supporter: "Supporters",
+  bestie: "Besties",
+  caregiver: "Guardians",
+  vendor: "Vendors",
+  moderator: "Moderators",
+  admin: "Admins",
+  owner: "Owners",
+};
+
+// Plain-words description of who a campaign will be emailed to.
+const describeAudience = (targetAudience: any): string => {
+  const ta = targetAudience || { type: "all" };
+  switch (ta.type) {
+    case "specific_emails": {
+      const n = ta.emails?.length || 0;
+      return `only the ${n} specific email address${n === 1 ? "" : "es"} saved with this campaign`;
+    }
+    case "all_site_members":
+      return "every site member, whether or not they subscribed to the newsletter";
+    case "non_subscribers":
+      return "site members who have NOT subscribed to the newsletter";
+    case "roles": {
+      const labels = (ta.roles || []).map((r: string) => ROLE_LABELS[r] || r);
+      return labels.length
+        ? `site members with these roles: ${labels.join(", ")}`
+        : "the role-based audience saved with this campaign (no roles selected)";
+    }
+    case "all":
+    default:
+      return "everyone on the active newsletter subscriber list";
+  }
+};
+
 interface CampaignActionsProps {
   campaignId: string;
   campaignStatus: string;
   failedCount?: number;
   queuedCount?: number;
   processedCount?: number;
+  targetAudience?: any;
+  recipientCount?: number;
+  campaignTitle?: string;
   onSendComplete?: () => void;
 }
 
@@ -27,13 +66,18 @@ export const CampaignActions = ({
   failedCount = 0,
   queuedCount = 0,
   processedCount = 0,
-  onSendComplete 
+  targetAudience,
+  recipientCount,
+  campaignTitle,
+  onSendComplete
 }: CampaignActionsProps) => {
   const [isSending, setIsSending] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isResuming, setIsResuming] = useState(false);
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false);
+  const [sendConfirmText, setSendConfirmText] = useState("");
   const { toast } = useToast();
 
   // Get current user email for test emails
@@ -217,7 +261,10 @@ export const CampaignActions = ({
         
         {campaignStatus === "draft" && (
           <Button
-            onClick={handleSendNewsletter}
+            onClick={() => {
+              setSendConfirmText("");
+              setIsSendConfirmOpen(true);
+            }}
             disabled={isSending}
             size="sm"
           >
@@ -254,6 +301,60 @@ export const CampaignActions = ({
           </Button>
         )}
       </div>
+
+      <Dialog
+        open={isSendConfirmOpen}
+        onOpenChange={(open) => {
+          setIsSendConfirmOpen(open);
+          if (!open) setSendConfirmText("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {campaignTitle ? `Send "${campaignTitle}"?` : "Send this newsletter?"}
+            </DialogTitle>
+            <DialogDescription>
+              This will email the campaign to {describeAudience(targetAudience)}.
+              {typeof recipientCount === "number" &&
+                ` About ${recipientCount.toLocaleString()} people will receive it.`}{" "}
+              Once the emails go out, they cannot be taken back.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label htmlFor="send-confirm-input">
+              Type <strong>SEND</strong> (all caps) to confirm.
+            </Label>
+            <Input
+              id="send-confirm-input"
+              value={sendConfirmText}
+              onChange={(e) => setSendConfirmText(e.target.value)}
+              placeholder="SEND"
+              autoComplete="off"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsSendConfirmOpen(false)}
+              disabled={isSending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setIsSendConfirmOpen(false);
+                handleSendNewsletter();
+              }}
+              disabled={isSending || sendConfirmText.trim() !== "SEND"}
+            >
+              {isSending ? "Sending..." : "Send Newsletter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
         <DialogContent>
