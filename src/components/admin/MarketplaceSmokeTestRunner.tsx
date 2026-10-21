@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlayCircle, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { showErrorToast } from "@/lib/errorToast";
-import { toast } from "sonner";
 
 interface Stage { name: string; status: "pass" | "fail" | "skip"; detail: string; ms: number }
 interface RunRow {
@@ -19,8 +16,6 @@ const StatusIcon = ({ s }: { s: Stage["status"] }) =>
   <MinusCircle className="h-4 w-4 text-muted-foreground" />;
 
 export const MarketplaceSmokeTestRunner = () => {
-  const [running, setRunning] = useState(false);
-  const [latest, setLatest] = useState<{ stages: Stage[]; overall: string } | null>(null);
   const [history, setHistory] = useState<RunRow[]>([]);
 
   const loadHistory = async () => {
@@ -32,59 +27,14 @@ export const MarketplaceSmokeTestRunner = () => {
 
   useEffect(() => { loadHistory(); }, []);
 
-  const run = async () => {
-    setRunning(true);
-    setLatest(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("e2e-marketplace-smoke-test", { body: {} });
-      if (error) throw error;
-      setLatest({ stages: data.stages ?? [], overall: data.overall });
-      toast.success(`Smoke test ${data.overall.toUpperCase()} — ${data.passed} pass / ${data.failed} fail / ${data.skipped} skip`);
-      loadHistory();
-    } catch (e: any) {
-      showErrorToast(`Smoke test failed to run: ${e?.message ?? String(e)}`);
-    } finally {
-      setRunning(false);
-    }
-  };
-
   return (
     <Card className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Marketplace E2E Smoke Test</h3>
-          <p className="text-sm text-muted-foreground">
-            Exhaustively exercises every downstream stage that fires after a marketplace payment.
-            Creates and cleans up a synthetic test order. Safe to run anytime.
-          </p>
-        </div>
-        <Button onClick={run} disabled={running}>
-          {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
-          {running ? "Running…" : "Run smoke test"}
-        </Button>
+      <div>
+        <h3 className="text-lg font-semibold">Marketplace E2E Smoke Test</h3>
+        <p className="text-sm text-muted-foreground">
+          Test environment tools are disabled on the live site.
+        </p>
       </div>
-
-      {latest && (
-        <div className="border rounded-md p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Badge variant={latest.overall === "pass" ? "default" : "destructive"}>
-              {latest.overall.toUpperCase()}
-            </Badge>
-            <span className="text-sm text-muted-foreground">{latest.stages.length} stages</span>
-          </div>
-          <div className="space-y-1.5">
-            {latest.stages.map((s, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                <StatusIcon s={s.status} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{s.name} <span className="text-xs text-muted-foreground">({s.ms}ms)</span></div>
-                  <div className="text-xs text-muted-foreground break-words">{s.detail}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {history.length > 0 && (
         <div>
