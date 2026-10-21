@@ -4,42 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RefreshCw, CheckCircle, AlertCircle, Info, CreditCard, DollarSign } from 'lucide-react';
+import { Info, CreditCard, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export function TestEnvironmentManager() {
-  const [isResetting, setIsResetting] = useState(false);
-  const [resetResult, setResetResult] = useState<any>(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const { toast } = useToast();
-
-  const handleResetEnvironment = async () => {
-    try {
-      setIsResetting(true);
-      setResetResult(null);
-
-      const { data, error } = await supabase.functions.invoke('reset-test-environment');
-
-      if (error) throw error;
-
-      setResetResult(data);
-      toast({
-        title: 'Test Environment Reset',
-        description: 'Test data has been cleaned and realistic data seeded.',
-      });
-    } catch (error) {
-      console.error('Error resetting test environment:', error);
-      toast({
-        title: 'Reset Failed',
-        description: error instanceof Error ? error.message : 'Failed to reset test environment',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
 
   const handleCreateTestDonation = async (frequency: 'one-time' | 'monthly') => {
     try {
@@ -227,69 +199,11 @@ export function TestEnvironmentManager() {
       <Card>
         <CardHeader>
           <CardTitle>Test Environment Management</CardTitle>
-          <CardDescription>
-            Reset test data and seed realistic data for local development and testing
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              This will delete all test users (Test*, E2E*, emailtest* patterns) and create fresh,
-              realistic test data including guardians, besties, sponsors, discussions, and sticker collections.
-            </AlertDescription>
-          </Alert>
-
-          <div className="flex gap-4">
-            <Button
-              onClick={handleResetEnvironment}
-              disabled={isResetting}
-              variant="outline"
-            >
-              {isResetting ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Reset Test Environment
-                </>
-              )}
-            </Button>
-          </div>
-
-          {resetResult && (
-            <Alert className={resetResult.success ? 'border-green-500' : 'border-destructive'}>
-              {resetResult.success ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-destructive" />
-              )}
-              <AlertDescription>
-                {resetResult.success ? (
-                  <div className="space-y-2">
-                    <p className="font-semibold">✅ Reset Complete</p>
-                    {resetResult.summary && (
-                      <div className="text-sm space-y-1">
-                        <p><strong>Deleted:</strong> {resetResult.summary.deleted.users} test users</p>
-                        <p><strong>Seeded:</strong></p>
-                        <ul className="list-disc list-inside ml-4">
-                          <li>{resetResult.summary.seeded.guardians} guardians with linked besties</li>
-                          <li>{resetResult.summary.seeded.sponsors} sponsors with active sponsorships</li>
-                          <li>{resetResult.summary.seeded.discussions} discussion posts</li>
-                          <li>{resetResult.summary.seeded.stickerCollections} sticker collection with 5 stickers</li>
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p>❌ {resetResult.error || 'Failed to reset environment'}</p>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Test environment tools are disabled on the live site.
+          </p>
         </CardContent>
       </Card>
 
