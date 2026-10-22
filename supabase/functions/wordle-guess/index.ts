@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { VALID_GUESSES } from "./validGuesses.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -191,46 +192,15 @@ serve(async (req) => {
       );
     }
 
-    // Validate that the guess is a real English word.
-    // Order: answer → curated list → dictionaryapi.dev → Datamuse backup.
-    // Only reject when every source confirms the word is unknown; outages allow the guess.
-    if (normalizedGuess !== dailyWord.word) {
-      const lower = normalizedGuess.toLowerCase();
-      let known = false;
-      let anySourceAnswered = false;
-
+    // Validate against the bundled full 5-letter word list, plus the admin curated list.
+    // No outside dictionary: validation is instant and can't be wrong due to a bad/unavailable API.
+    if (normalizedGuess !== dailyWord.word && !VALID_GUESSES.has(normalizedGuess)) {
       const { data: curated } = await supabaseAdmin
         .from("wordle_valid_words")
         .select("word")
         .eq("word", normalizedGuess)
         .maybeSingle();
-      if (curated) known = true;
-
-      if (!known) {
-        try {
-          const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${lower}`);
-          if (r.ok) known = true;
-          else if (r.status === 404) anySourceAnswered = true;
-          await r.body?.cancel();
-        } catch (e) {
-          console.warn("dictionaryapi check failed:", e);
-        }
-      }
-
-      if (!known) {
-        try {
-          const r = await fetch(`https://api.datamuse.com/words?sp=${lower}&max=1`);
-          if (r.ok) {
-            anySourceAnswered = true;
-            const rows = await r.json();
-            if (Array.isArray(rows) && rows[0]?.word?.toLowerCase() === lower) known = true;
-          }
-        } catch (e) {
-          console.warn("datamuse check failed:", e);
-        }
-      }
-
-      if (!known && anySourceAnswered) {
+      if (!curated) {
         return new Response(
           JSON.stringify({ error: "Not a valid word. Try again!" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
