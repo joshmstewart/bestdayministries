@@ -18,3 +18,4 @@
 - Public funding displays must use aggregate-only funding functions, while donor-row reads remain on authorized own/shared/admin paths, to preserve totals without exposing donor identifiers.
 
 - Public signup roles are allowlisted in the auth lifecycle trigger; trusted create-user assigns privileged roles by atomically replacing only the new default role and recording the authenticated creator, preventing metadata escalation and duplicate-role accounts.
+- Daily Five guess validation uses the bundled word list in wordle-guess plus the admin curated list, never an outside dictionary API, because outside dictionaries were incomplete and unreliable.
