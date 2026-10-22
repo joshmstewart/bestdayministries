@@ -191,22 +191,50 @@ serve(async (req) => {
       );
     }
 
-    // Validate that the guess is a real English word using a dictionary API
-    // Skip validation if the guess matches the answer (always valid)
+    // Validate that the guess is a real English word.
+    // Order: answer → curated list → dictionaryapi.dev → Datamuse backup.
+    // Only reject when every source confirms the word is unknown; outages allow the guess.
     if (normalizedGuess !== dailyWord.word) {
-      try {
-        const dictResponse = await fetch(
-          `https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedGuess.toLowerCase()}`
-        );
-        if (!dictResponse.ok) {
-          return new Response(
-            JSON.stringify({ error: "Not a valid word. Try again!" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+      const lower = normalizedGuess.toLowerCase();
+      let known = false;
+      let anySourceAnswered = false;
+
+      const { data: curated } = await supabaseAdmin
+        .from("wordle_valid_words")
+        .select("word")
+        .eq("word", normalizedGuess)
+        .maybeSingle();
+      if (curated) known = true;
+
+      if (!known) {
+        try {
+          const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${lower}`);
+          if (r.ok) known = true;
+          else if (r.status === 404) anySourceAnswered = true;
+          await r.body?.cancel();
+        } catch (e) {
+          console.warn("dictionaryapi check failed:", e);
         }
-      } catch (dictError) {
-        // If the dictionary API is unavailable, allow the guess to proceed
-        console.warn("Dictionary API check failed, allowing guess:", dictError);
+      }
+
+      if (!known) {
+        try {
+          const r = await fetch(`https://api.datamuse.com/words?sp=${lower}&max=1`);
+          if (r.ok) {
+            anySourceAnswered = true;
+            const rows = await r.json();
+            if (Array.isArray(rows) && rows[0]?.word?.toLowerCase() === lower) known = true;
+          }
+        } catch (e) {
+          console.warn("datamuse check failed:", e);
+        }
+      }
+
+      if (!known && anySourceAnswered) {
+        return new Response(
+          JSON.stringify({ error: "Not a valid word. Try again!" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
